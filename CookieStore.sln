@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CookieStore.Tests", "Cookie
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CookieStore.Shipping", "CookieStore.Shipping\CookieStore.Shipping.csproj", "{4FD6B3C5-2ADC-4AB7-ABF3-B81C49790259}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CookieStore.Contracts", "CookieStore.Contracts\CookieStore.Contracts.csproj", "{3456509C-09E2-4370-A05F-F379ACD535F9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{4FD6B3C5-2ADC-4AB7-ABF3-B81C49790259}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4FD6B3C5-2ADC-4AB7-ABF3-B81C49790259}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4FD6B3C5-2ADC-4AB7-ABF3-B81C49790259}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3456509C-09E2-4370-A05F-F379ACD535F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3456509C-09E2-4370-A05F-F379ACD535F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3456509C-09E2-4370-A05F-F379ACD535F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3456509C-09E2-4370-A05F-F379ACD535F9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

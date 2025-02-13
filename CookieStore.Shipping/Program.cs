@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using CookieStore.Contracts;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
@@ -84,5 +85,3 @@ public class ShippingService
         _connection.Close();
     }
 }
-
-public record PaymentProcessed(string OrderId, string Status);

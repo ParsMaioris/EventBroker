@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using CookieStore.Contracts;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
@@ -97,6 +98,3 @@ public class PaymentProcessor
         _connection.Close();
     }
 }
-
-public record PaymentRequest(string OrderId, decimal Amount);
-public record PaymentProcessed(string OrderId, string Status);

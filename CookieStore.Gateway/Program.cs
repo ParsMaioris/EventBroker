@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using CookieStore.Contracts;
 using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,8 +27,6 @@ app.MapPost("/api/payments", (PaymentRequest payment, IPaymentPublisher publishe
 });
 
 app.Run();
-
-public record PaymentRequest(string OrderId, decimal Amount);
 
 public interface IPaymentPublisher
 {
