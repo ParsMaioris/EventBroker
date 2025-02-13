@@ -3,18 +3,18 @@ using System.Text;
 using System.Text.Json;
 using RabbitMQ.Client;
 using CookieStore.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CookieStore.Tests;
 
 [TestClass]
-public class NotificationServiceTests
+public class NotificationServiceTests : TestBase
 {
-    private const string ConnectionString = "amqps://pdfnvtxf:bnpGPG4SYTEYSLDmF7XTcBrS7rhK28TD@gull.rmq.cloudamqp.com/pdfnvtxf";
     private const string NotificationQueue = "notification_queue";
     private const string ProcessedExchange = "payment_processed_exchange";
 
     private ConnectionFactory CreateFactory() =>
-        new ConnectionFactory { Uri = new Uri(ConnectionString) };
+       ServiceProvider.GetRequiredService<ConnectionFactory>();
 
     [TestInitialize]
     public void Setup()
@@ -61,7 +61,8 @@ public class NotificationServiceTests
         }
 
         // Act: Start the NotificationService.
-        var notificationService = new NotificationService(ConnectionString);
+        var connectionString = ServiceProvider.GetRequiredService<ConnectionFactory>().Uri.ToString();
+        var notificationService = new NotificationService(connectionString);
         notificationService.Start();
 
         // Wait (with polling) for the message to be consumed.
