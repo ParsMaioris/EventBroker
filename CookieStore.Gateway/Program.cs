@@ -1,19 +1,16 @@
 using System.Text;
 using System.Text.Json;
 using CookieStore.Contracts;
+using CookieStore.Shared;
 using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSingleton<IPaymentPublisher>(sp =>
-{
-     var connectionString = "amqps://pdfnvtxf:bnpGPG4SYTEYSLDmF7XTcBrS7rhK28TD@gull.rmq.cloudamqp.com/pdfnvtxf";
-     if (string.IsNullOrWhiteSpace(connectionString))
-          throw new ArgumentException("Connection string cannot be null or empty.", nameof(connectionString));
+builder.Configuration.AddUserSecrets<Program>();
 
-     var factory = new ConnectionFactory { Uri = new Uri(connectionString) };
-     return new RabbitMqPaymentPublisher(factory);
-});
+builder.Services.AddCookieStoreInfrastructure(builder.Configuration);
+
+builder.Services.AddSingleton<IPaymentPublisher, RabbitMqPaymentPublisher>();
 
 var app = builder.Build();
 

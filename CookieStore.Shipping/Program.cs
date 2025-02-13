@@ -1,11 +1,26 @@
 ﻿using CookieStore.Contracts;
+using CookieStore.Shared;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 
-string rabbitMqConnectionString = "amqps://pdfnvtxf:bnpGPG4SYTEYSLDmF7XTcBrS7rhK28TD@gull.rmq.cloudamqp.com/pdfnvtxf";
-var shippingService = new ShippingService(rabbitMqConnectionString);
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration(config =>
+    {
+        config.AddUserSecrets<Program>();
+    })
+    .ConfigureServices((context, services) =>
+    {
+        services.AddCookieStoreInfrastructure(context.Configuration);
+        services.AddTransient<ShippingService>();
+    })
+    .Build();
+
+var shippingService = host.Services.GetRequiredService<ShippingService>();
 shippingService.Start();
 
 Console.WriteLine(" Press [enter] to exit.");

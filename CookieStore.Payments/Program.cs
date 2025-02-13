@@ -1,18 +1,32 @@
 ﻿using CookieStore.Contracts;
+using CookieStore.Shared;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 
-var rabbitMqConnectionString = "amqps://pdfnvtxf:bnpGPG4SYTEYSLDmF7XTcBrS7rhK28TD@gull.rmq.cloudamqp.com/pdfnvtxf";
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration(config =>
+    {
+        config.AddUserSecrets<Program>();
+    })
+    .ConfigureServices((context, services) =>
+    {
+        services.AddCookieStoreInfrastructure(context.Configuration);
+        services.AddTransient<PaymentProcessor>();
+    })
+    .Build();
 
-var paymentProcessor = new PaymentProcessor(rabbitMqConnectionString);
-paymentProcessor.Start();
+var processor = host.Services.GetRequiredService<PaymentProcessor>();
+processor.Start();
 
 Console.WriteLine("Press [enter] to exit.");
 Console.ReadLine();
 
-paymentProcessor.Stop();
+processor.Stop();
 
 public class PaymentProcessor
 {
