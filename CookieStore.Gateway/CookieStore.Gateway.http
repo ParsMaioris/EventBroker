@@ -1,6 +1,0 @@
-@CookieStore.Gateway_HostAddress = http://localhost:5247
-
-GET {{CookieStore.Gateway_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
