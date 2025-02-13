@@ -2,20 +2,20 @@ using System.Text;
 using System.Text.Json;
 using RabbitMQ.Client;
 using CookieStore.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CookieStore.Tests;
 
 [TestClass]
-public class EndToEndPaymentProcessingTests
+public class EndToEndPaymentProcessingTests : TestBase
 {
-    private const string ConnectionString = "amqps://pdfnvtxf:bnpGPG4SYTEYSLDmF7XTcBrS7rhK28TD@gull.rmq.cloudamqp.com/pdfnvtxf";
     private const string PaymentQueue = "payment_queue";
     private const string NotificationQueue = "notification_queue";
     private const string ShippingQueue = "shipping_queue";
     private const string ProcessedExchange = "payment_processed_exchange";
 
     private ConnectionFactory CreateFactory() =>
-        new ConnectionFactory { Uri = new Uri(ConnectionString) };
+        ServiceProvider.GetRequiredService<ConnectionFactory>();
 
     [TestInitialize]
     public void Setup()
@@ -86,9 +86,10 @@ public class EndToEndPaymentProcessingTests
         }
 
         // Act: Start PaymentProcessor, NotificationService, and ShippingService.
-        var processor = new PaymentProcessor(ConnectionString);
-        var notificationService = new NotificationService(ConnectionString);
-        var shippingService = new ShippingService(ConnectionString);
+        var connectionString = ServiceProvider.GetRequiredService<ConnectionFactory>().Uri.ToString();
+        var processor = new PaymentProcessor(connectionString);
+        var notificationService = new NotificationService(connectionString);
+        var shippingService = new ShippingService(connectionString);
 
         processor.Start();
         notificationService.Start();
