@@ -2,17 +2,17 @@ using System.Text;
 using System.Text.Json;
 using RabbitMQ.Client;
 using CookieStore.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CookieStore.Tests;
 
 [TestClass]
-public class PaymentPublisherTests
+public class PaymentPublisherTests : TestBase
 {
-    private const string ConnectionString = "amqps://pdfnvtxf:bnpGPG4SYTEYSLDmF7XTcBrS7rhK28TD@gull.rmq.cloudamqp.com/pdfnvtxf";
     private const string PaymentQueue = "payment_queue";
 
     private ConnectionFactory CreateFactory() =>
-        new ConnectionFactory { Uri = new Uri(ConnectionString) };
+     ServiceProvider.GetRequiredService<ConnectionFactory>();
 
     [TestInitialize]
     public void Setup()

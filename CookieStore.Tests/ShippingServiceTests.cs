@@ -3,18 +3,18 @@ using System.Text;
 using System.Text.Json;
 using RabbitMQ.Client;
 using CookieStore.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CookieStore.Tests;
 
 [TestClass]
-public class ShippingServiceTests
+public class ShippingServiceTests : TestBase
 {
-    private const string ConnectionString = "amqps://pdfnvtxf:bnpGPG4SYTEYSLDmF7XTcBrS7rhK28TD@gull.rmq.cloudamqp.com/pdfnvtxf";
     private const string ShippingQueue = "shipping_queue";
     private const string ProcessedExchange = "payment_processed_exchange";
 
     private ConnectionFactory CreateFactory() =>
-        new ConnectionFactory { Uri = new Uri(ConnectionString) };
+       ServiceProvider.GetRequiredService<ConnectionFactory>();
 
     [TestInitialize]
     public void Setup()
@@ -61,7 +61,8 @@ public class ShippingServiceTests
         }
 
         // Act: Start the ShippingService.
-        var shippingService = new ShippingService(ConnectionString);
+        var connectionString = ServiceProvider.GetRequiredService<ConnectionFactory>().Uri.ToString();
+        var shippingService = new ShippingService(connectionString);
         shippingService.Start();
 
         // Poll until the message is consumed.
