@@ -3,60 +3,100 @@ using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
 
-string rabbitMqConnectionString = "amqps://pdfnvtxf:bnpGPG4SYTEYSLDmF7XTcBrS7rhK28TD@gull.rmq.cloudamqp.com/pdfnvtxf";
-var factory = new ConnectionFactory() { Uri = new Uri(rabbitMqConnectionString) };
+var rabbitMqConnectionString = "amqps://pdfnvtxf:bnpGPG4SYTEYSLDmF7XTcBrS7rhK28TD@gull.rmq.cloudamqp.com/pdfnvtxf";
 
-using var connection = factory.CreateConnection();
-using var channel = connection.CreateModel();
+var paymentProcessor = new PaymentProcessor(rabbitMqConnectionString);
+paymentProcessor.Start();
 
-channel.QueueDeclare(
-    queue: "payment_queue",
-    durable: true,
-    exclusive: false,
-    autoDelete: false,
-    arguments: null);
-
-channel.ExchangeDeclare(
-    exchange: "payment_processed_exchange",
-    type: ExchangeType.Fanout,
-    durable: true,
-    autoDelete: false,
-    arguments: null);
-
-Console.WriteLine(" [*] Waiting for payment messages...");
-
-var consumer = new EventingBasicConsumer(channel);
-consumer.Received += (model, ea) =>
-{
-    var body = ea.Body.ToArray();
-    var message = Encoding.UTF8.GetString(body);
-    Console.WriteLine($" [x] Received: {message}");
-
-    var payment = JsonSerializer.Deserialize<PaymentRequest>(message);
-    Console.WriteLine($" [x] Processing payment for OrderId: {payment?.OrderId}, Amount: {payment?.Amount}");
-    Thread.Sleep(1000);
-
-    var processed = new PaymentProcessed(payment?.OrderId, "Processed");
-    var processedJson = JsonSerializer.Serialize(processed);
-    var processedBody = Encoding.UTF8.GetBytes(processedJson);
-
-    channel.BasicPublish(
-         exchange: "payment_processed_exchange",
-         routingKey: "",
-         basicProperties: null,
-         body: processedBody);
-
-    Console.WriteLine($" [x] Published processed event for OrderId: {payment?.OrderId}");
-    channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
-};
-
-channel.BasicConsume(
-    queue: "payment_queue",
-    autoAck: false,
-    consumer: consumer);
-
-Console.WriteLine(" Press [enter] to exit.");
+Console.WriteLine("Press [enter] to exit.");
 Console.ReadLine();
+
+paymentProcessor.Stop();
+
+public class PaymentProcessor
+{
+    private readonly ConnectionFactory _factory;
+    private IConnection _connection = null!;
+    private IModel _channel = null!;
+    private const string PaymentQueue = "payment_queue";
+    private const string ProcessedExchange = "payment_processed_exchange";
+
+    public PaymentProcessor(string rabbitMqConnectionString)
+    {
+        if (string.IsNullOrWhiteSpace(rabbitMqConnectionString))
+            throw new ArgumentException("Connection string cannot be null or empty.", nameof(rabbitMqConnectionString));
+
+        _factory = new ConnectionFactory { Uri = new Uri(rabbitMqConnectionString) };
+    }
+
+    public void Start()
+    {
+        _connection = _factory.CreateConnection();
+        _channel = _connection.CreateModel();
+
+        _channel.QueueDeclare(
+            queue: PaymentQueue,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: null);
+
+        _channel.ExchangeDeclare(
+            exchange: ProcessedExchange,
+            type: ExchangeType.Fanout,
+            durable: true,
+            autoDelete: false,
+            arguments: null);
+
+        Console.WriteLine(" [*] Waiting for payment messages...");
+
+        var consumer = new EventingBasicConsumer(_channel);
+        consumer.Received += OnPaymentReceived;
+        _channel.BasicConsume(
+            queue: PaymentQueue,
+            autoAck: false,
+            consumer: consumer);
+    }
+
+    private void OnPaymentReceived(object? sender, BasicDeliverEventArgs ea)
+    {
+        if (_channel == null)
+            throw new InvalidOperationException("Channel is not initialized.");
+
+        var body = ea.Body.ToArray();
+        var message = Encoding.UTF8.GetString(body);
+        Console.WriteLine($" [x] Received: {message}");
+
+        var payment = JsonSerializer.Deserialize<PaymentRequest>(message)
+                      ?? throw new InvalidOperationException("Failed to deserialize PaymentRequest.");
+
+        Console.WriteLine($" [x] Processing payment for OrderId: {payment.OrderId}, Amount: {payment.Amount}");
+
+        Thread.Sleep(1000);
+
+        var processed = new PaymentProcessed(payment.OrderId, "Processed");
+        var processedJson = JsonSerializer.Serialize(processed);
+        var processedBody = Encoding.UTF8.GetBytes(processedJson);
+
+        _channel.BasicPublish(
+            exchange: ProcessedExchange,
+            routingKey: "",
+            basicProperties: null,
+            body: processedBody);
+
+        Console.WriteLine($" [x] Published processed event for OrderId: {payment.OrderId}");
+        _channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
+    }
+
+    public void Stop()
+    {
+        if (_channel == null || _connection == null)
+            throw new InvalidOperationException("PaymentProcessor is not running.");
+
+        _channel.Close();
+        _connection.Close();
+    }
+}
 
 public record PaymentRequest(string OrderId, decimal Amount);
 public record PaymentProcessed(string OrderId, string Status);
