@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CookieStore.Contracts\CookieStore.Contracts.csproj" />
+    <ProjectReference Include="..\CookieStore.Shared\CookieStore.Shared.csproj" />
   </ItemGroup>
 
 </Project>

@@ -21,6 +21,7 @@
     <ProjectReference Include="..\CookieStore.Payments\CookieStore.Payments.csproj" />
     <ProjectReference Include="..\CookieStore.Notifications\CookieStore.Notifications.csproj" />
     <ProjectReference Include="..\CookieStore.Shipping\CookieStore.Shipping.csproj" />
+    <ProjectReference Include="..\CookieStore.Shared\CookieStore.Shared.csproj" />
   </ItemGroup>
 
 </Project>
