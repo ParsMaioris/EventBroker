@@ -5,6 +5,7 @@ using CookieStore.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using CookieStore.Shipping;
 using CookieStore.Payments;
+using CookieStore.Notifications;
 
 namespace CookieStore.Tests;
 
