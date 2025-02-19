@@ -4,6 +4,7 @@ using System.Text.Json;
 using RabbitMQ.Client;
 using CookieStore.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using CookieStore.Shipping;
 
 namespace CookieStore.Tests;
 
