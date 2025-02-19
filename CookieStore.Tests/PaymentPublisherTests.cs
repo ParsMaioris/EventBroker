@@ -3,6 +3,7 @@ using System.Text.Json;
 using RabbitMQ.Client;
 using CookieStore.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using CookieStore.Gateway;
 
 namespace CookieStore.Tests;
 
@@ -39,7 +40,7 @@ public class PaymentPublisherTests : TestBase
         // Arrange
         var paymentRequest = new PaymentRequest("order123", 99.99m);
         var factory = CreateFactory();
-        var publisher = new RabbitMqPaymentPublisher(factory);
+        var publisher = new PaymentPublisher(factory);
 
         // Act
         publisher.Publish(paymentRequest);
