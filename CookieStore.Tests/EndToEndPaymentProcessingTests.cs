@@ -4,6 +4,7 @@ using RabbitMQ.Client;
 using CookieStore.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using CookieStore.Shipping;
+using CookieStore.Payments;
 
 namespace CookieStore.Tests;
 
