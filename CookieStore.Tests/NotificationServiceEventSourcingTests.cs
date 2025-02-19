@@ -5,77 +5,92 @@ using CookieStore.Contracts;
 using CookieStore.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CookieStore.Tests;
-
-public class TestNotificationService : NotificationService
+namespace CookieStore.Tests
 {
-    private bool _smsFailed = false;
-    public int SmsAttemptCount { get; private set; } = 0;
-    public TestNotificationService(string connectionString) : base(connectionString) { }
-
-    protected override NotificationEvent ProcessSms(NotificationEvent notification, PaymentProcessed processed)
+    public class TestNotificationService : NotificationService
     {
-        SmsAttemptCount++;
-        if (!_smsFailed)
+        private bool _smsFailed = false;
+        public int SmsAttemptCount { get; private set; } = 0;
+        public TestNotificationService(string connectionString) : base(connectionString) { }
+
+        protected override NotificationEvent ProcessSms(NotificationEvent notification, PaymentProcessed processed)
         {
-            _smsFailed = true;
-            throw new Exception("Simulated SMS failure");
+            SmsAttemptCount++;
+            if (!_smsFailed)
+            {
+                _smsFailed = true;
+                throw new Exception("Simulated SMS failure");
+            }
+            return base.ProcessSms(notification, processed);
         }
-        return base.ProcessSms(notification, processed);
+
+        public NotificationEvent GetEvent(string orderId) => _eventStore.GetOrCreate(orderId);
     }
 
-    public NotificationEvent GetEvent(string orderId) => _eventStore.GetOrCreate(orderId);
-}
-
-[TestClass]
-public class NotificationServiceEventSourcingTests : TestBase
-{
-    private const string NotificationQueue = "notification_queue";
-    private const string ProcessedExchange = "payment_processed_exchange";
-
-    private ConnectionFactory CreateFactory() =>
-        ServiceProvider.GetRequiredService<ConnectionFactory>();
-
-    [TestInitialize]
-    public void Setup()
+    [TestClass]
+    public class NotificationServiceEventSourcingTests : TestBase
     {
-        using var connection = CreateFactory().CreateConnection();
-        using var channel = connection.CreateModel();
-        channel.QueueDeclare(queue: NotificationQueue, durable: true, exclusive: false, autoDelete: false, arguments: null);
-        channel.QueuePurge(NotificationQueue);
-        channel.ExchangeDeclare(exchange: ProcessedExchange, type: ExchangeType.Fanout, durable: true, autoDelete: false, arguments: null);
-        channel.QueueBind(queue: NotificationQueue, exchange: ProcessedExchange, routingKey: "");
-    }
+        private const string NotificationQueue = "notification_queue";
+        private const string ProcessedExchange = "payment_processed_exchange";
+        private const string ShippingQueue = "shipping_queue";
 
-    [TestMethod]
-    public void EventSourcing_RetriesFailedNotification()
-    {
-        var processed = new PaymentProcessed("order-test-event", "Processed");
-        var factory = CreateFactory();
-        using (var connection = factory.CreateConnection())
-        using (var channel = connection.CreateModel())
+        private ConnectionFactory CreateFactory() =>
+            ServiceProvider.GetRequiredService<ConnectionFactory>();
+
+        [TestInitialize]
+        public void Setup()
         {
-            var json = JsonSerializer.Serialize(processed);
-            var body = Encoding.UTF8.GetBytes(json);
-            channel.BasicPublish(exchange: ProcessedExchange, routingKey: "", basicProperties: null, body: body);
+            using var connection = CreateFactory().CreateConnection();
+            using var channel = connection.CreateModel();
+
+            channel.QueueDeclare(queue: NotificationQueue, durable: true, exclusive: false, autoDelete: false, arguments: null);
+            channel.QueuePurge(NotificationQueue);
+
+            channel.QueueDeclare(queue: ShippingQueue, durable: true, exclusive: false, autoDelete: false, arguments: null);
+            channel.QueuePurge(ShippingQueue);
+
+            channel.ExchangeDeclare(exchange: ProcessedExchange, type: ExchangeType.Fanout, durable: true, autoDelete: false, arguments: null);
+            channel.QueueBind(queue: NotificationQueue, exchange: ProcessedExchange, routingKey: "");
         }
 
-        var connectionString = CreateFactory().Uri.ToString();
-        var service = new TestNotificationService(connectionString);
-        service.Start();
-        Thread.Sleep(5000);
-        service.Stop();
-
-        using (var connection = factory.CreateConnection())
-        using (var channel = connection.CreateModel())
+        [TestCleanup]
+        public void Cleanup()
         {
-            var result = channel.BasicGet(NotificationQueue, autoAck: true);
-            Assert.IsNull(result, "Expected notification_queue to be empty after processing.");
+            using var connection = CreateFactory().CreateConnection();
+            using var channel = connection.CreateModel();
+            channel.QueuePurge(ShippingQueue);
         }
 
-        var evt = service.GetEvent("order-test-event");
-        Assert.IsTrue(evt.EmailSent, "Email notification should be marked as sent.");
-        Assert.IsTrue(evt.SmsSent, "SMS notification should be marked as sent after retry.");
-        Assert.IsTrue(service.SmsAttemptCount >= 2, "SMS processing should have been attempted at least twice.");
+        [TestMethod]
+        public void EventSourcing_RetriesFailedNotification()
+        {
+            var processed = new PaymentProcessed("order-test-event", "Processed");
+            var factory = CreateFactory();
+            using (var connection = factory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                var json = JsonSerializer.Serialize(processed);
+                var body = Encoding.UTF8.GetBytes(json);
+                channel.BasicPublish(exchange: ProcessedExchange, routingKey: "", basicProperties: null, body: body);
+            }
+
+            var connectionString = CreateFactory().Uri.ToString();
+            var service = new TestNotificationService(connectionString);
+            service.Start();
+            Thread.Sleep(5000);
+            service.Stop();
+
+            using (var connection = factory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                var notificationResult = channel.BasicGet(NotificationQueue, autoAck: true);
+                Assert.IsNull(notificationResult, "Expected notification_queue to be empty after processing.");
+            }
+
+            var evt = service.GetEvent("order-test-event");
+            Assert.IsTrue(evt.EmailSent, "Email notification should be marked as sent.");
+            Assert.IsTrue(evt.SmsSent, "SMS notification should be marked as sent after retry.");
+            Assert.IsTrue(service.SmsAttemptCount >= 2, "SMS processing should have been attempted at least twice.");
+        }
     }
 }
