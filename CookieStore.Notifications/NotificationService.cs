@@ -13,7 +13,7 @@ public class NotificationService
     private IModel _channel = null!;
     private const string ExchangeName = "payment_processed_exchange";
     private const string QueueName = "notification_queue";
-    private readonly NotificationEventStore _eventStore = new();
+    protected readonly NotificationEventStore _eventStore = new();
 
     public NotificationService(string rabbitMqConnectionString)
     {
@@ -40,13 +40,23 @@ public class NotificationService
         var processed = JsonSerializer.Deserialize<PaymentProcessed>(message)
                         ?? throw new InvalidOperationException("Failed to deserialize PaymentProcessed.");
         var notification = _eventStore.GetOrCreate(processed.OrderId);
-        notification = ProcessEmail(notification, processed);
-        notification = ProcessSms(notification, processed);
-        _eventStore.Update(notification);
-        if (notification.EmailSent && notification.SmsSent)
-            _channel.BasicAck(ea.DeliveryTag, false);
-        else
+
+        try
+        {
+            notification = ProcessEmail(notification, processed);
+            notification = ProcessSms(notification, processed);
+            _eventStore.Update(notification);
+
+            if (notification.EmailSent && notification.SmsSent)
+                _channel.BasicAck(ea.DeliveryTag, false);
+            else
+                _channel.BasicNack(ea.DeliveryTag, false, true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception during processing: {ex.Message}");
             _channel.BasicNack(ea.DeliveryTag, false, true);
+        }
     }
 
     private NotificationEvent ProcessEmail(NotificationEvent notification, PaymentProcessed processed)
@@ -59,7 +69,7 @@ public class NotificationService
         return notification;
     }
 
-    private NotificationEvent ProcessSms(NotificationEvent notification, PaymentProcessed processed)
+    protected virtual NotificationEvent ProcessSms(NotificationEvent notification, PaymentProcessed processed)
     {
         if (!notification.SmsSent)
         {
