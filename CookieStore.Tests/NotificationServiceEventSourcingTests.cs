@@ -32,7 +32,6 @@ namespace CookieStore.Tests
     {
         private const string NotificationQueue = "notification_queue";
         private const string ProcessedExchange = "payment_processed_exchange";
-        private const string ShippingQueue = "shipping_queue";
 
         private ConnectionFactory CreateFactory() =>
             ServiceProvider.GetRequiredService<ConnectionFactory>();
@@ -46,19 +45,8 @@ namespace CookieStore.Tests
             channel.QueueDeclare(queue: NotificationQueue, durable: true, exclusive: false, autoDelete: false, arguments: null);
             channel.QueuePurge(NotificationQueue);
 
-            channel.QueueDeclare(queue: ShippingQueue, durable: true, exclusive: false, autoDelete: false, arguments: null);
-            channel.QueuePurge(ShippingQueue);
-
             channel.ExchangeDeclare(exchange: ProcessedExchange, type: ExchangeType.Fanout, durable: true, autoDelete: false, arguments: null);
             channel.QueueBind(queue: NotificationQueue, exchange: ProcessedExchange, routingKey: "");
-        }
-
-        [TestCleanup]
-        public void Cleanup()
-        {
-            using var connection = CreateFactory().CreateConnection();
-            using var channel = connection.CreateModel();
-            channel.QueuePurge(ShippingQueue);
         }
 
         [TestMethod]
