@@ -8,6 +8,7 @@ using CookieStore.Shipping;
 
 namespace CookieStore.Tests;
 
+[TestCategory("Integration")]
 [TestClass]
 public class ShippingServiceTests : TestBase
 {

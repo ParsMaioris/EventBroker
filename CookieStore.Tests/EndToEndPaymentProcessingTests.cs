@@ -9,6 +9,7 @@ using CookieStore.Notifications;
 
 namespace CookieStore.Tests;
 
+[TestCategory("EndToEnd")]
 [TestClass]
 public class EndToEndPaymentProcessingTests : TestBase
 {

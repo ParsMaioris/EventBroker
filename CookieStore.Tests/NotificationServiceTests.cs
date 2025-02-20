@@ -8,6 +8,7 @@ using CookieStore.Notifications;
 
 namespace CookieStore.Tests;
 
+[TestCategory("Integration")]
 [TestClass]
 public class NotificationServiceTests : TestBase
 {

@@ -7,6 +7,7 @@ using CookieStore.Gateway;
 
 namespace CookieStore.Tests;
 
+[TestCategory("Integration")]
 [TestClass]
 public class PaymentPublisherTests : TestBase
 {
